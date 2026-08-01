@@ -1,16 +1,49 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import React from 'react';
-import { useColorScheme } from 'react-native';
+import '../../global.css';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { AuthProvider, useAuth } from '@/auth/auth-context';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+// Held until the cold-start reset finishes, so there is no white flash between
+// the native splash and the animated one.
+SplashScreen.preventAutoHideAsync();
+
+// Set per screen rather than via `screenOptions` so a screen keeps its own
+// chrome settings independently.
+const SCREEN_OPTIONS = {
+  headerShown: false,
+  contentStyle: { backgroundColor: '#ffffff' },
+} as const;
+
+/**
+ * Releases the native splash once the cold-start reset finishes, whichever
+ * route the app opened on — a deep link straight to /login would otherwise
+ * leave it stuck on the native splash forever.
+ */
+function SplashGate() {
+  const { isPreparing } = useAuth();
+
+  useEffect(() => {
+    if (!isPreparing) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isPreparing]);
+
+  return null;
+}
+
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <AuthProvider>
+      <SplashGate />
+      <StatusBar style="dark" />
+      <Stack>
+        <Stack.Screen name="index" options={SCREEN_OPTIONS} />
+        <Stack.Screen name="login" options={SCREEN_OPTIONS} />
+        <Stack.Screen name="home" options={SCREEN_OPTIONS} />
+      </Stack>
+    </AuthProvider>
   );
 }
