@@ -61,4 +61,11 @@ export async function me(): Promise<AuthUser | null> {
   }
 }
 
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  await api.post('/auth/change-password', { currentPassword, newPassword });
+}
+
 export const isOwner = (user: AuthUser | null) => user?.role === 'owner';

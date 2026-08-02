@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/auth-context';
+import { PasswordInput } from '@/components/password-input';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -35,7 +36,7 @@ export default function LoginScreen() {
 
     try {
       await signIn(email, password);
-      router.replace('/home');
+      router.replace('/start');
     } catch (e) {
       setError(
         e instanceof ApiError ? e.message : 'Something went wrong. Try again.',
@@ -91,7 +92,7 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 inputMode="email"
                 editable={!isSubmitting}
-                className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-base text-neutral-900"
+                className="rounded-lg border border-neutral-300 bg-white px-4 py-3.5 text-base text-neutral-900"
               />
             </View>
 
@@ -99,18 +100,14 @@ export default function LoginScreen() {
               <Text className="text-sm font-medium text-neutral-700">
                 Password
               </Text>
-              <TextInput
+              <PasswordInput
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor="#a3a3a3"
-                autoCapitalize="none"
                 autoComplete="current-password"
-                secureTextEntry
                 editable={!isSubmitting}
                 returnKeyType="go"
                 onSubmitEditing={handleSubmit}
-                className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-base text-neutral-900"
               />
             </View>
 
@@ -123,7 +120,7 @@ export default function LoginScreen() {
             <Pressable
               onPress={handleSubmit}
               disabled={!canSubmit || isSubmitting}
-              className={`mt-2 h-12 flex-row items-center justify-center rounded-xl ${
+              className={`mt-2 h-12 flex-row items-center justify-center rounded-lg ${
                 !canSubmit || isSubmitting ? 'bg-neutral-300' : 'bg-neutral-900'
               }`}
             >

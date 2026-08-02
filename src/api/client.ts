@@ -20,6 +20,58 @@ function resolveBaseUrl(): string {
 
 const BASE_URL = resolveBaseUrl();
 
+/** Server origin without the /api suffix — uploads are served from the root. */
+export const SERVER_ORIGIN = BASE_URL.replace(/\/api\/?$/, '');
+
+/**
+ * Uploaded images come back as root-relative paths (/uploads/x.jpg) so the
+ * record works from any device. Resolve them against the API origin here.
+ */
+export function resolveImageUrl(url: string | null): string | null {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${SERVER_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+/** Uploads a local file URI as multipart/form-data and returns its URL. */
+export async function uploadImage(localUri: string): Promise<string> {
+  const token = await getToken();
+  const name = localUri.split('/').pop() || 'photo.jpg';
+  const ext = name.split('.').pop()?.toLowerCase() ?? 'jpg';
+
+  const form = new FormData();
+  // React Native's FormData takes this {uri,name,type} shape, not a Blob.
+  form.append('file', {
+    uri: localUri,
+    name,
+    type: ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg',
+  } as unknown as Blob);
+
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}/uploads/image`, {
+      method: 'POST',
+      // Content-Type is intentionally omitted: fetch must set the multipart
+      // boundary itself.
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: form,
+    });
+  } catch {
+    throw new ApiError(0, `Cannot reach the server at ${BASE_URL}.`);
+  }
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message = Array.isArray(payload?.message)
+      ? payload.message.join(', ')
+      : (payload?.message ?? response.statusText);
+    throw new ApiError(response.status, message);
+  }
+
+  return payload.url as string;
+}
+
 export class ApiError extends Error {
   status: number;
 
@@ -92,4 +144,8 @@ export const api = {
     request<T>(path, { ...options, method: 'GET' }),
   post: <T>(path: string, body?: unknown, options?: RequestOptions) =>
     request<T>(path, { ...options, method: 'POST', body }),
+  patch: <T>(path: string, body?: unknown, options?: RequestOptions) =>
+    request<T>(path, { ...options, method: 'PATCH', body }),
+  delete: <T>(path: string, options?: RequestOptions) =>
+    request<T>(path, { ...options, method: 'DELETE' }),
 };
